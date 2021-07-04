@@ -13,7 +13,7 @@ OBJS = main.o object_file.o input_sections.o output_chunks.o \
        mapfile.o perf.o linker_script.o archive_file.o output_file.o \
        subprocess.o gc_sections.o icf.o symbols.o cmdline.o filepath.o \
        passes.o tar.o compress.o memory_mapped_file.o relocatable.o \
-       arch_x86_64.o arch_i386.o
+       arch_x86_64.o arch_i386.o arch_aarch64.o
 
 PREFIX ?= /usr
 DEBUG ?= 0
@@ -64,6 +64,7 @@ all: mold mold-wrapper.so
 
 mold: $(OBJS) $(MIMALLOC_LIB) $(TBB_LIB)
 	$(CXX) $(CXXFLAGS) $(OBJS) -o $@ $(LDFLAGS) $(LIBS)
+	ln -sf mold ld
 
 mold-wrapper.so: mold-wrapper.c Makefile
 	$(CC) -fPIC -shared -o $@ $< -ldl
@@ -85,6 +86,7 @@ test tests check: all
 	 $(MAKE) -C test --output-sync --no-print-directory
 
 install: all
+	install -m 755 -d $(DESTDIR)$(PREFIX)/bin
 	install -m 755 mold $(DESTDIR)$(PREFIX)/bin
 	strip $(DESTDIR)$(PREFIX)/bin/mold
 
@@ -98,10 +100,11 @@ install: all
 	gzip -9 $(DESTDIR)$(PREFIX)/share/man/man1/mold.1
 
 uninstall:
-	rm -rf $(DESTDIR)$(PREFIX)/bin/mold $(DESTDIR)$(PREFIX)/share/man/man1/mold.1.gz \
-	       $(DESTDIR)$(PREFIX)/lib/mold
+	rm -f $(DESTDIR)$(PREFIX)/bin/mold
+	rm -f $(DESTDIR)$(PREFIX)/share/man/man1/mold.1.gz
+	rm -rf $(DESTDIR)$(PREFIX)/lib/mold
 
 clean:
-	rm -rf *.o *~ mold mold-wrapper.so test/tmp
+	rm -rf *.o *~ mold mold-wrapper.so test/tmp mimalloc/out oneTBB/out ld
 
 .PHONY: all test tests check clean $(TESTS)

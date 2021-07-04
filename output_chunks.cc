@@ -777,6 +777,11 @@ ElfRel<I386> reloc<I386>(u64 offset, u32 type, u32 sym, i64 addend) {
   return {(u32)offset, type, sym};
 }
 
+template <>
+ElfRel<AARCH64> reloc<AARCH64>(u64 offset, u32 type, u32 sym, i64 addend) {
+  return {offset, type, sym, addend};
+}
+
 // Fill .got and .rel.dyn.
 template <typename E>
 void GotSection<E>::copy_buf(Context<E> &ctx) {
@@ -860,7 +865,7 @@ void PltSection<E>::add_symbol(Context<E> &ctx, Symbol<E> *sym) {
   assert(!sym->has_got(ctx));
 
   if (this->shdr.sh_size == 0) {
-    this->shdr.sh_size = E::plt_size;
+    this->shdr.sh_size = E::plt_hdr_size;
     ctx.gotplt->shdr.sh_size = E::wordsize * 3;
   }
 
@@ -1806,3 +1811,4 @@ void ReproSection<E>::copy_buf(Context<E> &ctx) {
 
 INSTANTIATE(X86_64);
 INSTANTIATE(I386);
+INSTANTIATE(AARCH64);

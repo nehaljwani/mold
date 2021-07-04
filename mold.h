@@ -103,8 +103,8 @@ struct SectionFragmentRef {
 
 // Additinal class members for dynamic symbols. Because most symbols
 // don't need them and we allocate tens of millions of symbol objects
-// for large programs, and we separate them from `Symbol` class to
-// save memory.
+// for large programs, we separate them from `Symbol` class to save
+// memory.
 struct SymbolAux {
   i32 got_idx = -1;
   i32 gotplt_idx = -1;
@@ -124,8 +124,7 @@ inline u64 hash_string(std::string_view str) {
   return XXH3_64bits(str.data(), str.size());
 }
 
-namespace tbb {
-template<> struct tbb_hash_compare<std::string_view> {
+template<> struct tbb::tbb_hash_compare<std::string_view> {
   static size_t hash(const std::string_view &k) {
     return hash_string(k);
   }
@@ -134,7 +133,6 @@ template<> struct tbb_hash_compare<std::string_view> {
     return k1 == k2;
   }
 };
-}
 
 template<typename ValueT> class ConcurrentMap {
 public:
@@ -463,7 +461,7 @@ public:
     this->name = ".plt";
     this->shdr.sh_type = SHT_PROGBITS;
     this->shdr.sh_flags = SHF_ALLOC | SHF_EXECINSTR;
-    this->shdr.sh_addralign = E::plt_size;
+    this->shdr.sh_addralign = E::plt_hdr_size;
   }
 
   void add_symbol(Context<E> &ctx, Symbol<E> *sym);
@@ -1783,8 +1781,8 @@ public:
           return ctx.eh_frame->shdr.sh_addr;
         if (name() == "__FRAME_END__")
           return ctx.eh_frame->shdr.sh_addr + ctx.eh_frame->shdr.sh_size;
-        Fatal(ctx) << "symbol referring .eh_frame is not supported: "
-                   << *this << " " << *file;
+        // Fatal(ctx) << "symbol referring .eh_frame is not supported: "
+        //           << *this << " " << *file;
       }
 
       if (!input_section->is_alive) {
@@ -2089,6 +2087,11 @@ template <>
 inline i64 InputSection<I386>::get_addend(const ElfRel<I386> &rel) const {
   u8 *buf = (u8 *)contents.data();
   return *(i32 *)(buf + rel.r_offset);
+}
+
+template <>
+inline i64 InputSection<AARCH64>::get_addend(const ElfRel<AARCH64> &rel) const {
+  return rel.r_addend;
 }
 
 template <typename E>
